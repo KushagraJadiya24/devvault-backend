@@ -1,6 +1,7 @@
 package dev.kushagra.devvault.controller;
 
 import dev.kushagra.devvault.dto.SecretRequest;
+import dev.kushagra.devvault.model.Secret;
 import dev.kushagra.devvault.service.SecretService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,15 +13,20 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/secrets")
 @RequiredArgsConstructor
 public class SecretController {
+
     private final SecretService secretService;
 
-    @PostMapping("/api/secrets")
+    @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public String createSecret(@Valid @RequestBody SecretRequest request){
-        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public Secret createSecret(@Valid @RequestBody SecretRequest request) throws Exception {
+        Long userId = (Long) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        return secretService.createSecret(request, userId);
+    }
 
-        String Secret = secretService.createSecret(request,userId);
-
-        return Secret;
+    @GetMapping("/{name}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
+    public String getSecret(@PathVariable String name) throws Exception {
+        return secretService.getSecretByName(name);
     }
 }
