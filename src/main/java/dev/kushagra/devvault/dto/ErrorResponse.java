@@ -1,2 +1,11 @@
-package dev.kushagra.devvault.dto;public class ErrorResponse {
+package dev.kushagra.devvault.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class ErrorResponse {
+    private String message;
+    private int status;
 }
