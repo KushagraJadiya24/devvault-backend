@@ -4,6 +4,8 @@ import dev.kushagra.devvault.dto.SecretRequest;
 import dev.kushagra.devvault.model.Secret;
 import dev.kushagra.devvault.repository.SecretRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,12 +28,14 @@ public class SecretService {
         return secretRepository.save(secret);
     }
 
+    @Cacheable(value = "secrets", key = "#name")
     public String getSecretByName(String name) throws Exception {
         Secret secret = secretRepository.findByName(name)
                 .orElseThrow(() -> new RuntimeException("Secret not found"));
         return aesEncryptionService.decrypt(secret.getEncryptedValue());
     }
 
+    @CacheEvict(value = "secrets", key = "#name")
     public Secret updateSecret(String name, String newValue, Long userId) throws Exception {
         Secret secret = secretRepository.findByName(name)
                 .orElseThrow(() -> new RuntimeException("Secret not found"));
@@ -40,6 +44,7 @@ public class SecretService {
         return secretRepository.save(secret);
     }
 
+    @CacheEvict(value = "secrets", key = "#name")
     public void deleteSecret(String name) {
         Secret secret = secretRepository.findByName(name)
                 .orElseThrow(() -> new RuntimeException("Secret not found"));
