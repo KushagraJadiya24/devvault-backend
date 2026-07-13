@@ -3,6 +3,7 @@ package dev.kushagra.devvault.controller;
 import dev.kushagra.devvault.dto.SecretRequest;
 import dev.kushagra.devvault.model.Secret;
 import dev.kushagra.devvault.service.SecretService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,16 +21,22 @@ public class SecretController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Secret createSecret(@Valid @RequestBody SecretRequest request) throws Exception {
+    public Secret createSecret(@Valid @RequestBody SecretRequest request,
+                               HttpServletRequest httpRequest) throws Exception {
         Long userId = (Long) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
-        return secretService.createSecret(request, userId);
+        String ipAddress = httpRequest.getRemoteAddr();
+        return secretService.createSecret(request, userId, ipAddress);
     }
 
     @GetMapping("/{name}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
-    public String getSecret(@PathVariable String name) throws Exception {
-        return secretService.getSecretByName(name);
+    public String getSecret(@PathVariable String name,
+                            HttpServletRequest httpRequest) throws Exception {
+        Long userId = (Long) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        String ipAddress = httpRequest.getRemoteAddr();
+        return secretService.getSecretByName(name, userId, ipAddress);
     }
 
     @GetMapping
@@ -42,18 +49,23 @@ public class SecretController {
 
     @PutMapping("/{name}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Secret updateSecret(
-            @PathVariable String name,
-            @RequestBody String newValue) throws Exception {
+    public Secret updateSecret(@PathVariable String name,
+                               @RequestBody String newValue,
+                               HttpServletRequest httpRequest) throws Exception {
         Long userId = (Long) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
-        return secretService.updateSecret(name, newValue, userId);
+        String ipAddress = httpRequest.getRemoteAddr();
+        return secretService.updateSecret(name, newValue, userId, ipAddress);
     }
 
     @DeleteMapping("/{name}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteSecret(@PathVariable String name) {
-        secretService.deleteSecret(name);
+    public ResponseEntity<Void> deleteSecret(@PathVariable String name,
+                                             HttpServletRequest httpRequest) {
+        Long userId = (Long) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        String ipAddress = httpRequest.getRemoteAddr();
+        secretService.deleteSecret(name, userId, ipAddress);
         return ResponseEntity.noContent().build();
     }
 }
