@@ -12,6 +12,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/secrets")
 @RequiredArgsConstructor
@@ -67,5 +69,17 @@ public class SecretController {
         String ipAddress = httpRequest.getRemoteAddr();
         secretService.deleteSecret(name, userId, ipAddress);
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/{name}/history")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
+    public List<Secret> getSecretHistory(@PathVariable String name) {
+        return secretService.getSecretHistory(name);
+    }
+
+    @GetMapping("/{name}/version/{version}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
+    public String getSecretByVersion(@PathVariable String name,
+                                     @PathVariable Integer version) throws Exception {
+        return secretService.getSecretByVersion(name, version);
     }
 }
