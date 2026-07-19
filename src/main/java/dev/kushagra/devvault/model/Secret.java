@@ -32,4 +32,7 @@ public class Secret {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private Boolean active = true;
 }
