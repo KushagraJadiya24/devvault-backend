@@ -25,7 +25,7 @@ public class Secret {
     private Integer version;
 
     @Column(nullable = false)
-    private String projectId;
+    private Long projectId;
 
     @Column(nullable = false)
     private Long createdBy;
@@ -35,4 +35,8 @@ public class Secret {
 
     @Column(nullable = false)
     private Boolean active = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Environment environment;
 }
