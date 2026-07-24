@@ -1,17 +1,22 @@
 package dev.kushagra.devvault.dto;
 
+import dev.kushagra.devvault.model.Environment;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class SecretRequest {
 
-    @NotBlank
+    @NotBlank(message = "Name is required")
     private String name;
 
-    @NotBlank
+    @NotBlank(message = "Value is required")
     private String value;
 
-    @NotBlank
-    private String projectId;
+    @NotNull(message = "Project ID is required")
+    private Long projectId;
+
+    @NotNull(message = "Environment is required")
+    private Environment environment;
 }
