@@ -1,6 +1,7 @@
 package dev.kushagra.devvault.service;
 
 import dev.kushagra.devvault.dto.SecretRequest;
+import dev.kushagra.devvault.model.Environment;
 import dev.kushagra.devvault.model.Secret;
 import dev.kushagra.devvault.repository.SecretRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class SecretService {
         Secret secret = new Secret();
         secret.setName(request.getName());
         secret.setProjectId(request.getProjectId());
+        secret.setEnvironment(request.getEnvironment());
         secret.setCreatedBy(userId);
         secret.setVersion(1);
         secret.setActive(true);
@@ -33,50 +35,55 @@ public class SecretService {
         return secretRepository.save(secret);
     }
 
-    @Cacheable(value = "secrets", key = "#name")
-    public String getSecretByName(String name, Long userId, String ipAddress) throws Exception {
-        Secret secret = secretRepository.findByNameAndActiveTrue(name)
+    @Cacheable(value = "secrets", key = "#name + '_' + #projectId")
+    public String getSecretByName(String name, Long projectId, Long userId, String ipAddress) throws Exception {
+        Secret secret = secretRepository.findByNameAndProjectIdAndActiveTrue(name, projectId)
                 .orElseThrow(() -> new RuntimeException("Secret not found"));
         auditService.publishEvent(userId, "READ", name, ipAddress);
         return aesEncryptionService.decrypt(secret.getEncryptedValue());
     }
 
-    @CacheEvict(value = "secrets", key = "#name")
-    public Secret updateSecret(String name, String newValue, Long userId, String ipAddress) throws Exception {
-        Secret current = secretRepository.findByNameAndActiveTrue(name)
+    @CacheEvict(value = "secrets", key = "#name + '_' + #projectId")
+    public Secret updateSecret(String name, Long projectId, String newValue, Long userId, String ipAddress) throws Exception {
+        Secret current = secretRepository.findByNameAndProjectIdAndActiveTrue(name, projectId)
                 .orElseThrow(() -> new RuntimeException("Secret not found"));
-
-        // mark current version inactive
         current.setActive(false);
         secretRepository.save(current);
 
-        // create new version
         Secret newSecret = new Secret();
         newSecret.setName(current.getName());
         newSecret.setProjectId(current.getProjectId());
+        newSecret.setEnvironment(current.getEnvironment());
         newSecret.setCreatedBy(userId);
         newSecret.setVersion(current.getVersion() + 1);
         newSecret.setActive(true);
         newSecret.setEncryptedValue(aesEncryptionService.encrypt(newValue));
-
         auditService.publishEvent(userId, "UPDATE", name, ipAddress);
         return secretRepository.save(newSecret);
     }
 
-    @CacheEvict(value = "secrets", key = "#name")
-    public void deleteSecret(String name, Long userId, String ipAddress) {
-        Secret secret = secretRepository.findByNameAndActiveTrue(name)
+    @CacheEvict(value = "secrets", key = "#name + '_' + #projectId")
+    public void deleteSecret(String name, Long projectId, Long userId, String ipAddress) {
+        Secret secret = secretRepository.findByNameAndProjectIdAndActiveTrue(name, projectId)
                 .orElseThrow(() -> new RuntimeException("Secret not found"));
         auditService.publishEvent(userId, "DELETE", name, ipAddress);
         secretRepository.delete(secret);
     }
 
-    public List<Secret> getSecretHistory(String name) {
-        return secretRepository.findByNameOrderByVersionDesc(name);
+    public List<Secret> getSecretsByProject(Long projectId) {
+        return secretRepository.findByProjectIdAndActiveTrue(projectId);
     }
 
-    public String getSecretByVersion(String name, Integer version) throws Exception {
-        Secret secret = secretRepository.findByNameAndVersion(name, version)
+    public List<Secret> getSecretsByProjectAndEnvironment(Long projectId, Environment environment) {
+        return secretRepository.findByProjectIdAndEnvironmentAndActiveTrue(projectId, environment);
+    }
+
+    public List<Secret> getSecretHistory(String name, Long projectId) {
+        return secretRepository.findByNameAndProjectIdOrderByVersionDesc(name, projectId);
+    }
+
+    public String getSecretByVersion(String name, Long projectId, Integer version) throws Exception {
+        Secret secret = secretRepository.findByNameAndProjectIdAndVersion(name, projectId, version)
                 .orElseThrow(() -> new RuntimeException("Version not found"));
         return aesEncryptionService.decrypt(secret.getEncryptedValue());
     }

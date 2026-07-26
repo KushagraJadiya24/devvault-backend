@@ -1,6 +1,7 @@
 package dev.kushagra.devvault.controller;
 
 import dev.kushagra.devvault.dto.SecretRequest;
+import dev.kushagra.devvault.model.Environment;
 import dev.kushagra.devvault.model.Secret;
 import dev.kushagra.devvault.service.SecretService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,14 +32,67 @@ public class SecretController {
         return secretService.createSecret(request, userId, ipAddress);
     }
 
-    @GetMapping("/{name}")
+    @GetMapping("/project/{projectId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
-    public String getSecret(@PathVariable String name,
+    public List<Secret> getSecretsByProject(@PathVariable Long projectId) {
+        return secretService.getSecretsByProject(projectId);
+    }
+
+    @GetMapping("/project/{projectId}/env/{environment}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
+    public List<Secret> getSecretsByEnvironment(@PathVariable Long projectId,
+                                                @PathVariable Environment environment) {
+        return secretService.getSecretsByProjectAndEnvironment(projectId, environment);
+    }
+
+    @GetMapping("/project/{projectId}/{name}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
+    public String getSecret(@PathVariable Long projectId,
+                            @PathVariable String name,
                             HttpServletRequest httpRequest) throws Exception {
         Long userId = (Long) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         String ipAddress = httpRequest.getRemoteAddr();
-        return secretService.getSecretByName(name, userId, ipAddress);
+        return secretService.getSecretByName(name, projectId, userId, ipAddress);
+    }
+
+    @PutMapping("/project/{projectId}/{name}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Secret updateSecret(@PathVariable Long projectId,
+                               @PathVariable String name,
+                               @RequestBody String newValue,
+                               HttpServletRequest httpRequest) throws Exception {
+        Long userId = (Long) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        String ipAddress = httpRequest.getRemoteAddr();
+        return secretService.updateSecret(name, projectId, newValue, userId, ipAddress);
+    }
+
+    @DeleteMapping("/project/{projectId}/{name}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteSecret(@PathVariable Long projectId,
+                                             @PathVariable String name,
+                                             HttpServletRequest httpRequest) {
+        Long userId = (Long) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        String ipAddress = httpRequest.getRemoteAddr();
+        secretService.deleteSecret(name, projectId, userId, ipAddress);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/project/{projectId}/{name}/history")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
+    public List<Secret> getSecretHistory(@PathVariable Long projectId,
+                                         @PathVariable String name) {
+        return secretService.getSecretHistory(name, projectId);
+    }
+
+    @GetMapping("/project/{projectId}/{name}/version/{version}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
+    public String getSecretByVersion(@PathVariable Long projectId,
+                                     @PathVariable String name,
+                                     @PathVariable Integer version) throws Exception {
+        return secretService.getSecretByVersion(name, projectId, version);
     }
 
     @GetMapping
@@ -47,39 +101,5 @@ public class SecretController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return secretService.getAllSecrets(page, size);
-    }
-
-    @PutMapping("/{name}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public Secret updateSecret(@PathVariable String name,
-                               @RequestBody String newValue,
-                               HttpServletRequest httpRequest) throws Exception {
-        Long userId = (Long) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        String ipAddress = httpRequest.getRemoteAddr();
-        return secretService.updateSecret(name, newValue, userId, ipAddress);
-    }
-
-    @DeleteMapping("/{name}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteSecret(@PathVariable String name,
-                                             HttpServletRequest httpRequest) {
-        Long userId = (Long) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        String ipAddress = httpRequest.getRemoteAddr();
-        secretService.deleteSecret(name, userId, ipAddress);
-        return ResponseEntity.noContent().build();
-    }
-    @GetMapping("/{name}/history")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
-    public List<Secret> getSecretHistory(@PathVariable String name) {
-        return secretService.getSecretHistory(name);
-    }
-
-    @GetMapping("/{name}/version/{version}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MEMBER')")
-    public String getSecretByVersion(@PathVariable String name,
-                                     @PathVariable Integer version) throws Exception {
-        return secretService.getSecretByVersion(name, version);
     }
 }
