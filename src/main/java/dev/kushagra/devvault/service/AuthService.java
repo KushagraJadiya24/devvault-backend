@@ -4,6 +4,7 @@ import dev.kushagra.devvault.dto.LoginRequest;
 import dev.kushagra.devvault.dto.RegisterRequest;
 import dev.kushagra.devvault.model.Role;
 import dev.kushagra.devvault.model.User;
+import dev.kushagra.devvault.repository.AllowedEmailRepository;
 import dev.kushagra.devvault.repository.UserRepository;
 import dev.kushagra.devvault.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -17,16 +18,23 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final AllowedEmailRepository allowedEmailRepository;
 
     public String register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
 
+        boolean isFirstUser = userRepository.count() == 0;
+
+        if (!isFirstUser && !allowedEmailRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Registration not allowed. Contact your admin to get access.");
+        }
+
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(Role.MEMBER);
+        user.setRole(isFirstUser ? Role.ADMIN : Role.MEMBER);
 
         userRepository.save(user);
 
